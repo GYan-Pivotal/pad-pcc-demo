@@ -21,6 +21,11 @@ public class Customer {
 
 	public Customer() {}
 
+	public Customer(String id) {
+		super();
+		this.id = id;
+	}
+
 	public Customer(String id, String name, String email, String address, String birthday) {
 		super();
 		this.id = id;

@@ -4,16 +4,17 @@ import io.pivotal.domain.Customer;
 import io.pivotal.repo.jpa.CustomerJpaRepository;
 import io.pivotal.repo.pcc.CustomerGemFireRepository;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.cache.annotation.Cacheable;
+import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.stereotype.Service;
 import org.springframework.util.Assert;
 
 import javax.annotation.PostConstruct;
 
-
+/**
+ * Created by gyan on 2017/4/21.
+ */
 @Service
-public class CustomerSearchService {
-
+public class CustomerOperationService {
     @Autowired
     CustomerGemFireRepository customerGemFireRepository;
 
@@ -29,31 +30,27 @@ public class CustomerSearchService {
         System.out.printf("%1$s initialized!%n", getClass().getSimpleName());
     }
 
-    private volatile boolean cacheMiss = false;
-
-    public boolean isCacheMiss() {
-        boolean isCacheMiss = this.cacheMiss;
-        this.cacheMiss = false;
-        return isCacheMiss;
+    public void saveCustomersToDb(Iterable<Customer> customers){
+        customerJpaRepository.save(customers);
     }
 
-    protected void setCacheMiss() {
-        this.cacheMiss = true;
+    public void saveCustomersToPCC(Iterable<Customer> customers){
+        customerGemFireRepository.save(customers);
     }
 
-    @Cacheable(value = "customer")
-    public Customer getCustomerByEmail(String email) {
-
-        Customer customer = customerGemFireRepository.findByEmail(email);
-
-        if (customer == null) {
-            //if can't get from pcc, then get from db and save to pcc
-            setCacheMiss();
-            customer = customerJpaRepository.findByEmail(email);
-            customerGemFireRepository.save(customer);
-        }
-
-        return customer;
+    public void deleteAllFromJpa(){
+        customerJpaRepository.deleteAll();
     }
 
+    public Iterable<Customer> getAllCustomerFromPcc(){
+        return customerJpaRepository.findAll();
+    }
+
+    public Iterable<Customer> getAllCustomerFromJpa(){
+        return customerJpaRepository.findAll();
+    }
+
+    public void deleteAllfromPcc(){
+        customerGemFireRepository.deleteAll();
+    }
 }

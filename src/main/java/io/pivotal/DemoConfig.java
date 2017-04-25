@@ -2,14 +2,17 @@ package io.pivotal;
 
 import javax.sql.DataSource;
 
+import com.gemstone.gemfire.cache.Cache;
+import com.gemstone.gemfire.cache.Region;
+import com.gemstone.gemfire.cache.client.ClientCache;
+import com.gemstone.gemfire.cache.client.ClientCacheFactory;
+import com.gemstone.gemfire.cache.client.ClientRegionFactory;
+import com.gemstone.gemfire.cache.client.ClientRegionShortcut;
+import com.gemstone.gemfire.pdx.ReflectionBasedAutoSerializer;
 import io.pivotal.domain.Customer;
 import io.pivotal.spring.cloud.service.gemfire.GemfireServiceConnectorConfig;
 
-import org.apache.geode.cache.Region;
-import org.apache.geode.cache.client.ClientCache;
-import org.apache.geode.cache.client.ClientRegionFactory;
-import org.apache.geode.cache.client.ClientRegionShortcut;
-import org.apache.geode.pdx.ReflectionBasedAutoSerializer;
+
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.cache.annotation.EnableCaching;
 import org.springframework.cloud.Cloud;
@@ -22,6 +25,13 @@ import org.springframework.core.io.ClassPathResource;
 import org.springframework.data.gemfire.support.GemfireCacheManager;
 import org.springframework.jdbc.datasource.init.DatabasePopulatorUtils;
 import org.springframework.jdbc.datasource.init.ResourceDatabasePopulator;
+
+
+import java.io.IOException;
+import java.net.URI;
+import java.net.URISyntaxException;
+import java.util.List;
+import java.util.Properties;
 
 @Configuration
 @EnableCaching
@@ -46,17 +56,51 @@ public class DemoConfig extends AbstractCloudConfig {
         gemfireConfig.setPdxSerializer(new ReflectionBasedAutoSerializer(".*"));
         gemfireConfig.setPdxReadSerialized(false);
 
+
         return gemfireConfig;
     }
     
 	@Bean(name = "gemfireCache")
-    public ClientCache getGemfireClientCache() throws Exception {		
+    public ClientCache getGemfireClientCache() throws Exception {
 		
-		Cloud cloud = new CloudFactory().getCloud();
-		ClientCache clientCache = cloud.getSingletonServiceConnector(ClientCache.class,  createGemfireConnectorConfig());
+//		Cloud cloud = new CloudFactory().getCloud();
+//
+//		ClientCache clientCache = cloud.getSingletonServiceConnector(ClientCache.class,  createGemfireConnectorConfig());
 
+		Properties props = new Properties();
+		props.setProperty("security-client-auth-init", "io.pivotal.ClientAuthInitialize.create");
+		ClientCacheFactory ccf = new ClientCacheFactory(props);
+
+		ClientCache clientCache = null;
+		try {
+			List<URI> locatorList = EnvParser.getInstance().getLocators();
+			for (URI locator : locatorList) {
+				ccf.addPoolLocator(locator.getHost(), locator.getPort());
+			}
+			clientCache = ccf.create();
+		} catch (IOException | URISyntaxException e) {
+			throw new RuntimeException("Could not deploy Application", e);
+		}
         return clientCache;
     }
+
+	@Bean(name = "gemfireClientCacheFactory")
+    public ClientCacheFactory getGemfireClientCacheFactory(){
+
+		Properties props = new Properties();
+		props.setProperty("security-client-auth-init", "io.pivotal.ClientAuthInitialize.create");
+		ClientCacheFactory ccf = new ClientCacheFactory(props);
+
+		try {
+			List<URI> locatorList = EnvParser.getInstance().getLocators();
+			for (URI locator : locatorList) {
+				ccf.addPoolLocator(locator.getHost(), locator.getPort());
+			}
+		} catch (IOException | URISyntaxException e) {
+			throw new RuntimeException("Could not deploy Application", e);
+		}
+		return ccf;
+	}
 
 
 	@Bean(name = "customer")
@@ -72,7 +116,7 @@ public class DemoConfig extends AbstractCloudConfig {
 	public GemfireCacheManager createGemfireCacheManager(@Autowired ClientCache gemfireCache) {
 
 		GemfireCacheManager gemfireCacheManager = new GemfireCacheManager();
-		gemfireCacheManager.setCache(gemfireCache);
+		gemfireCacheManager.setCache((Cache)gemfireCache);
 
 		return gemfireCacheManager;
 	}

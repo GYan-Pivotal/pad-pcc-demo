@@ -3,6 +3,7 @@ package io.pivotal.controller;
 import java.util.ArrayList;
 import java.util.List;
 
+import io.pivotal.service.CustomerOperationService;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestMethod;
@@ -19,13 +20,10 @@ import io.pivotal.service.CustomerSearchService;
 public class CustomerController {
 	
 	@Autowired
-	io.pivotal.repo.pcc.CustomerRepository pccCustomerRepository;
-	
-	@Autowired
-	io.pivotal.repo.jpa.CustomerRepository jpaCustomerRepository; 
-	
-	@Autowired
 	CustomerSearchService customerSearchService;
+
+	@Autowired
+	CustomerOperationService customerOperationService;
 	
 	Fairy fairy = Fairy.create();
 	
@@ -39,6 +37,7 @@ public class CustomerController {
 				+ "GET /showdb  	                   - get all customer info in MySQL<br/>"
 				+ "GET /cleardb                        - remove all customer info in MySQL<br/>"
 				+ "GET /loaddb                         - load 500 customer info into MySQL<br/>"
+				+ "GET /loadcache                      - load 500 customer info from mysql into PCC<br/>"
 				+ "GET /customerSearch?email={email}   - get specific customer info<br/>";
 	}
 
@@ -46,8 +45,8 @@ public class CustomerController {
 	@ResponseBody
 	public String show() throws Exception {
 		StringBuilder result = new StringBuilder();
-		
-		pccCustomerRepository.findAll().forEach(item->result.append(item+"<br/>"));
+
+		customerOperationService.getAllCustomerFromPcc().forEach(item->result.append(item+"<br/>"));
 
 		return result.toString();
 	}
@@ -55,7 +54,7 @@ public class CustomerController {
 	@RequestMapping(method = RequestMethod.GET, path = "/clearcache")
 	@ResponseBody
 	public String clearCache() throws Exception {
-		pccCustomerRepository.deleteAll();
+		customerOperationService.deleteAllfromPcc();
 		return "Region cleared";
 	}
 	
@@ -63,8 +62,8 @@ public class CustomerController {
 	@ResponseBody
 	public String showDB() throws Exception {
 		StringBuilder result = new StringBuilder();
-		
-		jpaCustomerRepository.findAll().forEach(item->result.append(item+"<br/>"));
+
+		customerOperationService.getAllCustomerFromJpa().forEach(item->result.append(item+"<br/>"));
 		
 		return result.toString();
 	}
@@ -80,17 +79,29 @@ public class CustomerController {
 			Customer customer = new Customer(person.passportNumber(), person.fullName(), person.email(), person.getAddress().toString(), person.dateOfBirth().toString());
 			customers.add(customer);
 		}
-		
-		jpaCustomerRepository.save(customers);
-		
+
+		customerOperationService.saveCustomersToDb(customers);
+
 		return "New 500 customers successfully saved into Database";
+	}
+
+
+	@RequestMapping(method = RequestMethod.GET, path = "/loadcachefromdb")
+	@ResponseBody
+	public String loadCacheFromDB() throws Exception {
+
+		Iterable<Customer> customers = customerOperationService.getAllCustomerFromJpa();
+
+		customerOperationService.saveCustomersToPCC(customers);
+
+		return "New 500 customers successfully saved into cache";
 	}
 	
 	@RequestMapping(method = RequestMethod.GET, path = "/cleardb")
 	@ResponseBody
 	public String clearDB() throws Exception {
-		
-		jpaCustomerRepository.deleteAll();
+
+		customerOperationService.deleteAllFromJpa();
 		
 		return "Database cleared";
 	}
