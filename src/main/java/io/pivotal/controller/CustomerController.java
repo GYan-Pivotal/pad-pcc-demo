@@ -3,6 +3,7 @@ package io.pivotal.controller;
 import java.util.ArrayList;
 import java.util.List;
 
+import com.gemstone.gemfire.cache.Region;
 import io.pivotal.service.CustomerOperationService;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.web.bind.annotation.RequestMapping;
@@ -16,6 +17,8 @@ import io.codearte.jfairy.producer.person.Person;
 import io.pivotal.domain.Customer;
 import io.pivotal.service.CustomerSearchService;
 
+import javax.annotation.Resource;
+
 @RestController
 public class CustomerController {
 	
@@ -26,6 +29,9 @@ public class CustomerController {
 	CustomerOperationService customerOperationService;
 	
 	Fairy fairy = Fairy.create();
+
+	@Resource(name = "customer")
+	Region<String, Customer> customerRegion;
 	
 	
 	@RequestMapping("/")
@@ -36,8 +42,8 @@ public class CustomerController {
 				+ "GET /clearcache                     - remove all customer info in PCC<br/>"
 				+ "GET /showdb  	                   - get all customer info in MySQL<br/>"
 				+ "GET /cleardb                        - remove all customer info in MySQL<br/>"
-				+ "GET /loaddb                         - load 500 customer info into MySQL<br/>"
-				+ "GET /loadcache                      - load 500 customer info from mysql into PCC<br/>"
+				+ "GET /loaddb                         - generate 500 customer info into MySQL<br/>"
+				+ "GET /loadcachefromdb                - load 500 customer info from mysql into PCC<br/>"
 				+ "GET /customerSearch?email={email}   - get specific customer info<br/>";
 	}
 
@@ -54,7 +60,8 @@ public class CustomerController {
 	@RequestMapping(method = RequestMethod.GET, path = "/clearcache")
 	@ResponseBody
 	public String clearCache() throws Exception {
-		customerOperationService.deleteAllfromPcc();
+		//customerOperationService.deleteAllfromPcc();
+		customerRegion.removeAll(customerRegion.keySetOnServer());
 		return "Region cleared";
 	}
 	

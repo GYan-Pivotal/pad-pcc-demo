@@ -25,13 +25,20 @@
 	</properties>
 
 	<dependencies>
+
+		<dependency>
+			<groupId>org.projectlombok</groupId>
+			<artifactId>lombok</artifactId>
+			<version>1.18.8</version>
+			<scope>provided</scope>
+		</dependency>
+
 		<!-- Spring Data Geode -->
 		<dependency>
 			<groupId>org.springframework.data</groupId>
 			<artifactId>spring-data-gemfire</artifactId>
 			<version>1.9.1.RELEASE</version>
 		</dependency>
-
 
 		<!-- Spring MVC -->
 		<dependency>

@@ -43,7 +43,7 @@ public class CustomerOperationService {
     }
 
     public Iterable<Customer> getAllCustomerFromPcc(){
-        return customerJpaRepository.findAll();
+        return customerGemFireRepository.findAll();
     }
 
     public Iterable<Customer> getAllCustomerFromJpa(){
